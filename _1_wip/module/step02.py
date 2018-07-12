@@ -1,4 +1,4 @@
-from step0 import PARSE_ARGS
+from step0 import PARSE_ARGS, parameters
 from step01 import list_all_images
 
 import matplotlib.pyplot as plt
@@ -15,17 +15,19 @@ from sklearn.model_selection import train_test_split # sklearn v 0.18import
 # Helper function: return HOG features and visualization
 def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
     if vis==True: # call with two outputs if vis==True
-        features, hog_image = hog(img, orientations=orient,
+        # TODO: switch transform_sqrt = True # False
+        features, hog_image = hog(img,orientations=orient,
                                   pixels_per_cell = (pix_per_cell, pix_per_cell),
                                   cells_per_block = (cell_per_block, cell_per_block),
-                                  transform_sqrt  = False,
-                                  visualize = vis, feature_vector = feature_vec )
+                                  transform_sqrt  = True,
+                                  visualize = vis, feature_vector = feature_vec ) # visualize instead of visualise
         return features, hog_image
     else:         # otherwise call with one output
+        # TODO: switch transform_sqrt = True
         features = hog(img, orientations=orient,
                                   pixels_per_cell = (pix_per_cell, pix_per_cell),
                                   cells_per_block = (cell_per_block, cell_per_block),
-                                  transform_sqrt  = False,
+                                  transform_sqrt  = True,
                                   visualize = vis, feature_vector = feature_vec )
         return features
 
@@ -97,8 +99,8 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32), hist_bins=3
             # append the new feature vector to the features list
             file_features.append(hog_features)
         features.append(np.concatenate(file_features))
-        # return list of feature vectors
-        return features
+    # return list of feature vectors
+    return features
 
 # Helper function: take an image, start and stop positions in both x and y, window size (x and y dimensions), and overlap fraction (for both x and y)
 def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None], xy_window=(64,64), xy_overlap=(0.5, 0.5)):
@@ -118,8 +120,10 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None], xy_w
     nx_pix_per_step = np.int(xy_window[0] * (1 - xy_overlap[0]))
     ny_pix_per_step = np.int(xy_window[1] * (1 - xy_overlap[1]))
     # compute the number of windows in x/y
-    nx_windows = np.int(xspan / nx_pix_per_step) - 1
-    ny_windows = np.int(yspan / ny_pix_per_step) - 1
+    nx_buffer  = np.int(xy_window[0]*(xy_overlap[0]))
+    ny_buffer  = np.int(xy_window[1]*(xy_overlap[1]))
+    nx_windows = np.int((xspan-nx_buffer)/nx_pix_per_step)
+    ny_windows = np.int((yspan-ny_buffer)/ny_pix_per_step)
     # initialize a list to append window positions to
     window_list = []
     # loop through finding x and y window positions (see note at t = 12min54s)
@@ -180,6 +184,7 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32), hist_bins
             for channel in range(feature_image.shape[2]):
                 hog_features.append(get_hog_features(feature_image[:,:,channel], orient,
                                     pix_per_cell, cell_per_block, vis=False, feature_vec=True))
+            # TODO: next line à commenter?
             hog_features = np.concatenate(hog_features)
         else:
             if vis == True:
@@ -224,19 +229,48 @@ def search_windows(img, windows, clf, scaler, color_space='RGB', spatial_size=(3
     return on_windows
 
 
-# Helper function: plot multiple images
-def visualize(fig, rows, cols, imgs, titles):
-    for i, img in enumerate(imgs):
-        plt.subplot(rows, cols, i+1)
-        plt.title(i+1)
-        img_dims = len(img.shape)
-        if img_dims < 3:
-            plt.imshow(img, cmap='hot')
-            plt.title(titles[i])
-        else:
-            plt.imshow(img)
-            plt.title(titles[i])
+
+def color_map(image):
+    if image.shape[-1] == 3:
+        cMap = None
+    elif image.shape[-1] != 3 or image.shape[-1] == 1:
+        cMap ='hot'
+    else:
+        raise ValueError('[ERROR] info | channel : {}, Current image.shape: {}'.format(ch,image.shape))
+    return cMap
+
+# Helper function:  plot multiple images
+def visualize(figsize, cols, imgs, titles):
+    # plot images
+    remainder = len(imgs) % cols
+    iquotient = len(imgs) // cols
+    rows      = iquotient if remainder == 0 else 1 + iquotient
+
+    figure, axes = plt.subplots(rows, cols, figsize=figsize) # (15, 13)
+    w = rows * cols - len(imgs)
+    _ = [axes[-1, -i].axis('off') for i in range(1, w + 1)]
+    figure.tight_layout()
+
+    for ax, image, title in zip(axes.flatten(), imgs, titles):
+        ax.imshow(image, cmap=color_map(image))
+        ax.set_title(title, fontsize=15)
+
     plt.show()
+
+
+# Helper function: plot multiple images
+# def visualize(fig, rows, cols, imgs, titles):
+#     for i, img in enumerate(imgs):
+#         plt.subplot(rows, cols, i+1)
+#         plt.title(i+1)
+#         img_dims = len(img.shape)
+#         if img_dims < 3:
+#             plt.imshow(img, cmap='hot')
+#             plt.title(titles[i])
+#         else:
+#             plt.imshow(img)
+#             plt.title(titles[i])
+#     plt.show()
 
 
 def step02_test(args):
@@ -279,8 +313,10 @@ def step02_test(args):
 
     images = [car_image, car_hog_image, notcar_image, notcar_hog_image]
     titles = ['car image', 'car HOG image', 'notcar_image', 'notcar HOG image']
-    figure = plt.figure(figsize=(12, 3))  # , dpi=80)
-    visualize(figure, 1, 4, images, titles)
+    #figure = plt.figure(figsize=(12, 3))  # , dpi=80)
+    #visualize(figure, 1, 4, images, titles)
+    figsize = (12, 3)
+    visualize(figsize, 4, images, titles)
 
 
 
@@ -330,8 +366,10 @@ def main():
 
     images = [car_image, car_hog_image, notcar_image, notcar_hog_image]
     titles = ['car image', 'car HOG image', 'notcar_image', 'notcar HOG image']
-    figure = plt.figure(figsize=(12, 3))  # , dpi=80)
-    visualize(figure, 1, 4, images, titles)
+    #figure = plt.figure(figsize=(12, 3))  # , dpi=80)
+    #visualize(figure, 1, 4, images, titles)
+    figsize = (12, 3)
+    visualize(figsize, 4, images, titles)
 
 
 if __name__ == '__main__':
