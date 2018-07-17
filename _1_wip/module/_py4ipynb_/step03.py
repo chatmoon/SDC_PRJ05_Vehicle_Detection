@@ -1,7 +1,7 @@
-from step0 import PARSE_ARGS, parameters
-from step01 import list_all_images
-from step02 import get_hog_features, bin_spatial, color_hist, extract_features, slide_window
-from step02 import draw_boxes, single_img_features, search_windows, visualize, step02_test
+from module._py4ipynb_.step0 import PARSE_ARGS, parameters
+from module._py4ipynb_.step01 import list_all_images
+from module._py4ipynb_.step02 import get_hog_features, bin_spatial, color_hist, extract_features, slide_window
+from module._py4ipynb_.step02 import draw_boxes, single_img_features, search_windows, visualize, step02_test
 
 import os
 import glob
@@ -41,6 +41,22 @@ def classifier(args, var, to_print=True):
         random_idxs  = np.random.randint(0, len(cars), n_samples)
         test_cars    = np.array(cars)[random_idxs]
         test_noncars = np.array(notcars)[random_idxs]
+
+        car_features, car_hog_image = single_img_features(car_image, color_space=var['color_space'], spatial_size=var['spatial_size'],
+                                                          hist_bins=var['hist_bins'], orient=var['orient'], pix_per_cell=var['pix_per_cell'],
+                                                          cell_per_block=var['cell_per_block'], hog_channel=var['hog_channel'],
+                                                          spatial_feat=var['spatial_feat'], hist_feat=var['hist_feat'], hog_feat=var['hog_feat'],
+                                                          vis=True)
+
+        notcar_features, notcar_hog_image = single_img_features(notcar_image, color_space=var['color_space'],
+                                                                spatial_size=var['spatial_size'],
+                                                                hist_bins=var['hist_bins'], orient=var['orient'],
+                                                                pix_per_cell=var['pix_per_cell'],
+                                                                cell_per_block=var['cell_per_block'], hog_channel=var['hog_channel'],
+                                                                spatial_feat=var['spatial_feat'], hist_feat=var['hist_feat'],
+                                                                hog_feat=var['hog_feat'],
+                                                                vis=True)
+
 
         car_features = extract_features(test_cars, color_space=var['color_space'], spatial_size=var['spatial_size'], hist_bins=var['hist_bins'],
                                         orient=var['orient'], pix_per_cell=var['pix_per_cell'], cell_per_block=var['cell_per_block'],

@@ -1,9 +1,9 @@
-from step0 import PARSE_ARGS, parameters
-from step01 import list_all_images
-from step02 import get_hog_features, bin_spatial, color_hist, extract_features, slide_window
-from step02 import draw_boxes, single_img_features, search_windows, visualize, step02_test
-from step03 import classifier
-from step04 import convert_color
+from module._py4ipynb_.step0 import PARSE_ARGS, parameters
+from module._py4ipynb_.step01 import list_all_images
+from module._py4ipynb_.step02 import get_hog_features, bin_spatial, color_hist, extract_features, slide_window
+from module._py4ipynb_.step02 import draw_boxes, single_img_features, search_windows, visualize, step02_test
+from module._py4ipynb_.step03 import classifier
+from module._py4ipynb_.step04 import convert_color
 
 import os
 import glob
@@ -27,95 +27,84 @@ directory = 'D:/USER/_PROJECT_/_PRJ05_/_1_WIP/_1_forge/_v0_/'
 args      = PARSE_ARGS(path=directory)
 var       = parameters()
 
-
-# L21.35 # Define a single function that can extract features using hog sub-sampling and make predictions
-def find_cars(args, var, img):
+# Helper function: iterate over test images
+def find_cars(var, img):
     # set variables
-    X_scaler,_,svc = classifier(args, var, to_print=False)
+    pix_per_cell   = var['pix_per_cell']
+    orient         = var['orient']
     cell_per_block = var['cell_per_block']
+    spatial_size   = var['spatial_size']
     hist_bins      = var['hist_bins']
     hog_channel    = var['hog_channel']
-    orient         = var['orient']
-    pix_per_cell   = var['pix_per_cell']
-    scale          = var['scale']
-    spatial_size   = var['spatial_size']
-    ystart         = var['y_start_stop'][0]
-    ystop          = var['y_start_stop'][1]
-
 
     draw_img = np.copy(img)
+    # make a heatmap of zeros
+    heatmap = np.zeros_like(img[:, :, 0])
     img = img.astype(np.float32) / 255
 
-    img_tosearch = img[ystart:ystop, :, :]
+    img_tosearch = img[var['y_start_stop'][0]:var['y_start_stop'][1], :, :]
     ctrans_tosearch = convert_color(img_tosearch, conv='RGB2YCrCb')
-    if scale != 1:
+    if var['scale'] != 1:
         imshape = ctrans_tosearch.shape
-        ctrans_tosearch = cv2.resize(ctrans_tosearch, (np.int(imshape[1] / scale), np.int(imshape[0] / scale)))
+        ctrans_tosearch = cv2.resize(ctrans_tosearch, (np.int(imshape[1] / var['scale']), np.int(imshape[0] / var['scale'])))
 
     if hog_channel == 'ALL':
-        ch1 = ctrans_tosearch[:, :, 0]
-        ch2 = ctrans_tosearch[:, :, 1]
-        ch3 = ctrans_tosearch[:, :, 2]
+        (ch1, ch2, ch3) = [ctrans_tosearch[:, :, i] for i in range(3)]
     else:
         ch1 = ctrans_tosearch[:, :, hog_channel]
 
-    # Define blocks and steps as above
-    nxblocks = (ch1.shape[1] // pix_per_cell) - cell_per_block + 1
-    nyblocks = (ch1.shape[0] // pix_per_cell) - cell_per_block + 1
-    nfeat_per_block = orient * cell_per_block ** 2
+    # define blocks and steps as above
+    (nyblocks, nxblocks) = [(ch1.shape[i] // var['pix_per_cell']) - 1 for i in range(2)]
+    nfeat_per_block = var['orient'] * var['cell_per_block'] ** 2
+    window, cells_per_step = 64, 2  # instead of overlap, define how many cells to step
+    nblocks_per_window = (window // var['pix_per_cell']) - 1
+    (nysteps, nxsteps) = [(i - nblocks_per_window) // cells_per_step for i in [nyblocks, nxblocks]]
 
-    # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
-    window = 64
-    nblocks_per_window = (window // pix_per_cell) - cell_per_block + 1
-    cells_per_step = 2  # Instead of overlap, define how many cells to step
-    nxsteps = (nxblocks - nblocks_per_window) // cells_per_step + 1
-    nysteps = (nyblocks - nblocks_per_window) // cells_per_step + 1
-
-    # Compute individual channel HOG features for the entire image
+    # compute individual channel HOG features for the entire image
     if hog_channel == 'ALL':
-        hog1 = get_hog_features(ch1, orient, pix_per_cell, cell_per_block, feature_vec=False)
-        hog2 = get_hog_features(ch2, orient, pix_per_cell, cell_per_block, feature_vec=False)
-        hog3 = get_hog_features(ch3, orient, pix_per_cell, cell_per_block, feature_vec=False)
+        (hog1, hog2, hog3) = [get_hog_features(i, orient, pix_per_cell, cell_per_block, feature_vec=False) for i in [ch1, ch2, ch3]]
     else:
         hog1 = get_hog_features(ch1, orient, pix_per_cell, cell_per_block, feature_vec=False)
 
+    img_boxes = []
     for xb in range(nxsteps):
         for yb in range(nysteps):
-            ypos = yb * cells_per_step
-            xpos = xb * cells_per_step
-            # Extract HOG for this patch
+            # count += 1
+            (ypos, xpos) = [i * cells_per_step for i in [yb, xb]]
+            # extract HOG for this patch
             if hog_channel == 'ALL':
-                hog_feat1 = hog1[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
-                hog_feat2 = hog2[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
-                hog_feat3 = hog3[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
+                (hog_feat1, hog_feat2, hog_feat3) = [
+                    i[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel() for i in
+                    [hog1, hog2, hog3]]
                 hog_features = np.hstack((hog_feat1, hog_feat2, hog_feat3))
             else:
                 hog_features = hog1[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
 
-            xleft = xpos * pix_per_cell
-            ytop = ypos * pix_per_cell
+            (ytop, xleft) = [i * var['pix_per_cell'] for i in [ypos, xpos]]
 
-            # Extract the image patch
+            # extract the image patch
             subimg = cv2.resize(ctrans_tosearch[ytop:ytop + window, xleft:xleft + window], (64, 64))
 
-            # Get color features
-            spatial_features = bin_spatial(subimg, size=spatial_size)
-            hist_features = color_hist(subimg, nbins=hist_bins)
+            # get color features
+            spatial_features = bin_spatial(subimg, size=var['spatial_size'])
+            hist_features    = color_hist(subimg, nbins=var['hist_bins'])
 
-            # Scale features and make a prediction
-            test_features = X_scaler.transform(
-                np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
-            # test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))
-            test_prediction = svc.predict(test_features)
+            print('[SHAPE] spatial_features {}, hist_features {}, hog_features {}'
+                  .format(spatial_features.shape, hist_features.shape, hog_features.shape))
 
-            if test_prediction == 1:
-                xbox_left = np.int(xleft * scale)
-                ytop_draw = np.int(ytop * scale)
-                win_draw = np.int(window * scale)
-                cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart),
-                              (xbox_left + win_draw, ytop_draw + win_draw + ystart), (0, 0, 255), 6)
+        # scale features and make a prediction
+        X_scaler, _, svc = classifier(args, var, to_print=False)
+        test_features    = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
+        test_prediction  = svc.predict(test_features)
 
-    return draw_img
+        if test_prediction == 1:
+            (xbox_left, ytop_draw, win_draw) = [np.int(i * var['scale']) for i in [xleft, ytop, window]]
+            cv2.rectangle(draw_img, (xbox_left, ytop_draw + var['y_start_stop'][0]),
+                          (xbox_left + win_draw, ytop_draw + win_draw + var['y_start_stop'][0]), (0, 0, 255))
+            img_boxes.append(((xbox_left, ytop_draw + var['y_start_stop'][0]), (xbox_left + win_draw, ytop_draw + win_draw + var['y_start_stop'][0])))
+            heatmap[ytop_draw + var['y_start_stop'][0]:ytop_draw + win_draw + var['y_start_stop'][0], xbox_left:xbox_left + win_draw] += 1
+
+    return draw_img, heatmap
 
 
 # Helper function: return thresholded map
@@ -180,7 +169,7 @@ def main():
     args = PARSE_ARGS(path=directory)
 
     test_output = args.path + 'test.mp4'
-    clip = VideoFileClip('project_video.mp4')
+    clip = VideoFileClip(args.path + 'test_video.mp4')
     test_clip = clip.fl_image(process_image)
     test_clip.write_videofile(test_output, audio=False)
 

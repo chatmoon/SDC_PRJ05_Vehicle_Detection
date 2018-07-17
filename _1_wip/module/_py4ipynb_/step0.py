@@ -48,7 +48,7 @@ def parameters():
                   'orient'        : 8,
                   'overlap'       : 0.5,
                   'pix_per_cell'  : 8,
-                  'scale'         : 1.,
+                  'scale'         : 1.5,
                   'spatial_feat'  : True,
                   'spatial_size'  : (32, 32),
                   'x_start_stop'  : [None, None],
