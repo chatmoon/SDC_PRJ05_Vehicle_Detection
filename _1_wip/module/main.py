@@ -1,3 +1,5 @@
+# RESULT: https://youtu.be/tdRQXMYCC2I
+
 from step0 import PARSE_ARGS, parameters
 import os,cv2, time, pickle, glob
 import matplotlib.pyplot as plt
@@ -447,14 +449,16 @@ def find_cars(args, var, image):
                 bboxes.append(((xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart)))
                 #cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart),(xbox_left + win_draw, ytop_draw + win_draw + ystart), (0, 0, 255), 6)
 
-    heat     = add_heat(np.zeros_like(image[:,:,0]).astype(np.float),bboxes) # Add heat to each box in box list
-    heat     = apply_threshold(heat,2)  # ,1) # Apply threshold to help remove false positives
-    heatmap  = np.clip(heat, 0, 255) # Visualize the heatmap when displaying    
-    labels   = label(heatmap)
-    draw_img = draw_labeled_bboxes(np.copy(image), labels)
+    return bboxes # draw_img , bboxes
 
+# L23.33 - Multi-scale Windows
+def multiscale_bboxes(args, var, image):
+    bboxes = []
+    for var['scale'] in var['scales']:
+        bboxes_scaled = find_cars(args, var, image)
+        bboxes        = bboxes + bboxes_scaled
+    return bboxes
 
-    return draw_img #, bboxes
 
 # L19.37
 def add_heat(heatmap, bbox_list):
@@ -466,8 +470,6 @@ def add_heat(heatmap, bbox_list):
 
     # Return updated heatmap
     return heatmap
-
-
 
 # CHECK OK # Helper function: return thresholded map
 def apply_threshold(heatmap, threshold):
@@ -493,11 +495,14 @@ def draw_labeled_bboxes(img, labels):
 
 def process_image(image):
     var      = parameters()
-    heat_map = find_cars(args, var, image)
-    #labels           = label(heat_map)
-    # draw bounding boxes on a copy of the image
-    #draw_image       = draw_labeled_bboxes(np.copy(image), labels)
-    return heat_map
+    #bboxes   = find_cars(args, var, image)
+    bboxes   = multiscale_bboxes(args, var, image)
+    heat     = add_heat(np.zeros_like(image[:,:,0]).astype(np.float),bboxes) # Add heat to each box in box list
+    heat     = apply_threshold(heat,2)  # ,1) # Apply threshold to help remove false positives
+    heatmap  = np.clip(heat, 0, 255) # Visualize the heatmap when displaying
+    labels   = label(heatmap)
+    draw_img = draw_labeled_bboxes(np.copy(image), labels) # draw bounding boxes on a copy of the image
+    return draw_img
 
 # video code
 def video(video_input, video_output):
@@ -518,8 +523,8 @@ def main():
     var       = parameters()
 
     # generate video output
-    test(args, mp4=0)
-    # test(args, mp4=1)
+    #test(args, mp4=0)
+    test(args, mp4=1)
 
 if __name__ == '__main__':
     main()
