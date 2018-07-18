@@ -1,4 +1,4 @@
-# RESULT: https://youtu.be/tdRQXMYCC2I
+# RESULT: ...
 
 from step0 import PARSE_ARGS, parameters
 import os,cv2, time, pickle, glob
@@ -12,7 +12,13 @@ from sklearn.model_selection import train_test_split  # sklearn v 0.18import
 # from sklearn.cross_validation import train_test_split
 from scipy.ndimage.measurements import label
 from moviepy.editor import VideoFileClip
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+from moviepy.editor import VideoFileClip
+import gc
 from IPython.display import HTML
+global heat_list, smooth_factor
+heat_list = []
+smooth_factor = 15
 
 
 # parameter
@@ -493,16 +499,35 @@ def draw_labeled_bboxes(img, labels):
     return img
 
 
+# def process_image(image):
+#     var      = parameters()
+#     #bboxes   = find_cars(args, var, image)
+#     bboxes   = multiscale_bboxes(args, var, image)
+#     heat     = add_heat(np.zeros_like(image[:,:,0]).astype(np.float),bboxes) # Add heat to each box in box list
+#
+#
+#     heat     = apply_threshold(heat,2)  # ,1) # Apply threshold to help remove false positives
+#     heatmap  = np.clip(heat, 0, 255) # Visualize the heatmap when displaying
+#     labels   = label(heatmap)
+#     draw_img = draw_labeled_bboxes(np.copy(image), labels) # draw bounding boxes on a copy of the image
+#     return draw_img
+
 def process_image(image):
     var      = parameters()
     #bboxes   = find_cars(args, var, image)
     bboxes   = multiscale_bboxes(args, var, image)
     heat     = add_heat(np.zeros_like(image[:,:,0]).astype(np.float),bboxes) # Add heat to each box in box list
-    heat     = apply_threshold(heat,2)  # ,1) # Apply threshold to help remove false positives
+
+    heat_list.append(heat)
+    heat_smooth = np.int32(np.average(heat_list, 0))
+
+    heat     = apply_threshold(heat_smooth,2)  # ,1) # Apply threshold to help remove false positives
     heatmap  = np.clip(heat, 0, 255) # Visualize the heatmap when displaying
     labels   = label(heatmap)
     draw_img = draw_labeled_bboxes(np.copy(image), labels) # draw bounding boxes on a copy of the image
     return draw_img
+
+
 
 # video code
 def video(video_input, video_output):
@@ -516,6 +541,48 @@ def test(args, mp4=0):
     video_output = args.out  + {0: "video_output_test.mp4", 1: "video_output_project.mp4"}[mp4]
     video(video_input, video_output)
 
+def test2(args, mp4=0):
+    video_input  = args.video + {0: 'project_video_00-15.mp4',
+                                 1: 'project_video_15-30.mp4',
+                                 2: 'project_video_30-45.mp4',
+                                 3: 'project_video_45-50.mp4'}[mp4]
+
+    video_output = args.out   + {0: 'video_output_00-15.mp4',
+                                 1: 'video_output_15-30.mp4',
+                                 2: 'video_output_30-45.mp4',
+                                 3: 'video_output_45-50.mp4'}[mp4]
+
+    video(video_input, video_output)
+
+
+def cut_video(args, piece=10, mp4=0):
+    video_input  = args.path + {0: "test_video.mp4", 1: "project_video.mp4"}[mp4]
+    video_output = args.video  + {0: "video_output_test.mp4", 1: "video_output_project.mp4"}[mp4]
+
+    clip     = VideoFileClip(video_input)
+    duration = int(clip.duration)
+    step     = int(duration/piece)
+    #print('duration: {}, step: {}'.format(duration,step))
+
+    for t in range(0,duration,step):
+        ffmpeg_extract_subclip(video_input, t, t+step, targetname=video_output[:-4]+'_'+str(t)+'.mp4')
+
+def test3(args):
+    videos = glob.glob(args.video + ('*.mp4'))
+    video_input, video_output = {}, {}
+    count = 0
+
+    for clip in videos:
+        if not os.path.exists(args.out + 'video_output_' + str(count) + '.mp4'):
+            video_input[count]  = args.video + clip.split('\\')[-1]
+            video_output[count] = args.out   + 'video_output_' + str(count) + '.mp4'
+            video(video_input[count], video_output[count])
+            #gc.collect()
+        count += 1
+
+
+
+
 def main():
     # parameter
     directory = 'D:/USER/_PROJECT_/_PRJ05_/_1_WIP/_1_forge/_v0_/'
@@ -524,7 +591,14 @@ def main():
 
     # generate video output
     #test(args, mp4=0)
-    test(args, mp4=1)
+    #test(args, mp4=1)
+    #test2(args, mp4=3)
+    # for i in range(3):
+    #     test2(args, mp4=i)
+
+    #cut_video(args, piece=10, mp4=1)
+
+    test3(args)
 
 if __name__ == '__main__':
     main()

@@ -10,6 +10,7 @@ class PARSE_ARGS(object):
         self.notcars = self.path + 'data/non-vehicles/'
         self.small   = self.path + 'data/smallset/'
         self.pickled = self.path + 'data/pickled_object/'
+        self.video   = self.path + 'video/'
 
     def path(self):
         return self.path
@@ -25,6 +26,8 @@ class PARSE_ARGS(object):
         return self.small
     def pickled(self):
         return self.pickled
+    def video(self):
+        return self.video
 
 def parameters():
     '''
@@ -49,6 +52,7 @@ def parameters():
                   'overlap'       : 0.5,
                   'pix_per_cell'  : 8,
                   'scale'         : 1.,
+                  'scales'        : [0.75,1.,1.5, 1.75],
                   'spatial_feat'  : True,
                   'spatial_size'  : (32, 32),
                   'x_start_stop'  : [None, None],
