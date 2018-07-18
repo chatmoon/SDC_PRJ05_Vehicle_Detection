@@ -14,11 +14,10 @@ from scipy.ndimage.measurements import label
 from moviepy.editor import VideoFileClip
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from moviepy.editor import VideoFileClip
-import gc
+# import gc
 from IPython.display import HTML
-global heat_list, smooth_factor
-heat_list = []
-smooth_factor = 15
+global heat_list # , smooth_factor
+heat_list = []   # smooth_factor = 15
 
 
 # parameter
@@ -590,7 +589,7 @@ def main():
     var       = parameters()
 
     # generate video output
-    #test(args, mp4=0)
+    test(args, mp4=0)
     #test(args, mp4=1)
     #test2(args, mp4=3)
     # for i in range(3):
@@ -598,7 +597,7 @@ def main():
 
     #cut_video(args, piece=10, mp4=1)
 
-    test3(args)
+    #test3(args)
 
 if __name__ == '__main__':
     main()

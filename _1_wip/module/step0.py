@@ -36,6 +36,7 @@ def parameters():
     hist_feat		: histogram features on or off
     hog_channel		: can be 0 1 2 or 'ALL'
     hog_feat		: HOG features on or off
+    scales          : [0.75,1.,1.5, 1.75]
     spatial_feat	: spatial features on or off
     spatial_size	: spatial binning dimensions, (16, 16) (32, 32)
     xy_window		: (128, 128) (96,96) (64,64)
@@ -52,7 +53,7 @@ def parameters():
                   'overlap'       : 0.5,
                   'pix_per_cell'  : 8,
                   'scale'         : 1.,
-                  'scales'        : [0.75,1.,1.5, 1.75],
+                  'scales'        : [1., 1.125, 1.25, 1.5],
                   'spatial_feat'  : True,
                   'spatial_size'  : (32, 32),
                   'x_start_stop'  : [None, None],
