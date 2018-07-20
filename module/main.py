@@ -631,17 +631,18 @@ def test3(args):
 
 
 def main():
-    # parameter
+    ## parameter
     directory = 'D:/USER/_PROJECT_/_PRJ05_/_1_WIP/_1_forge/_v0_/'
     args      = PARSE_ARGS(path=directory)
     var       = parameters()
 
+    # dectect vehicle: {0: "test_video.mp4", 1: "project_video.mp4"}[mp4]
+    test(args, mp4=1)
+
+    ## archives
     # videos = glob.glob(args.video + '*.mp4')
     # _ = [ print( '{}. {}'.format(count, clip.split('\\')[-1])) for count,clip in enumerate(videos)]
 
-    # generate video output
-
-    # test(args, mp4=1)
     # test0(args, mp4=0) # , to_print=True)
     # test1(args, mp4=2)
     # test2(args, mp4=3)
@@ -650,7 +651,7 @@ def main():
     # test3(args)
 
     #cut_video(args, piece=10, mp4=1)
-    merge_video(args)
+    #merge_video(args)
 
 
     # video_input  = args.path + 'project_video.mp4'
