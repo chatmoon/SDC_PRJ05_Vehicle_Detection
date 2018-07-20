@@ -11,6 +11,7 @@ class PARSE_ARGS(object):
         self.small   = self.path + 'data/smallset/'
         self.pickled = self.path + 'data/pickled_object/'
         self.video   = self.path + 'video/'
+        self.column  = 5
 
     def path(self):
         return self.path
@@ -28,6 +29,8 @@ class PARSE_ARGS(object):
         return self.pickled
     def video(self):
         return self.video
+    def column(self):
+        return self.column
 
 def parameters():
     '''
@@ -53,7 +56,7 @@ def parameters():
                   'overlap'       : 0.5,
                   'pix_per_cell'  : 8,
                   'scale'         : 1.,
-                  'scales'        : [1., 1.125, 1.25, 1.5],
+                  'scales'        : [0.75,1.,1.5, 1.75],
                   'spatial_feat'  : True,
                   'spatial_size'  : (32, 32),
                   'x_start_stop'  : [None, None],

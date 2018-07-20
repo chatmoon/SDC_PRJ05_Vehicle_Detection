@@ -10,21 +10,22 @@ from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split  # sklearn v 0.18import
 # from sklearn.cross_validation import train_test_split
+from sklearn.externals import joblib
 from scipy.ndimage.measurements import label
-from moviepy.editor import VideoFileClip
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-from moviepy.editor import VideoFileClip
-# import gc
+from moviepy.editor import * # from moviepy.editor import VideoFileClip
+#import gc
 from IPython.display import HTML
-global heat_list # , smooth_factor
-heat_list = []   # smooth_factor = 15
-
+global heat_list, smooth_factor
+heat_list = []
+smooth_factor = 40 # 15 25 30
 
 # parameter
 directory = 'D:/USER/_PROJECT_/_PRJ05_/_1_WIP/_1_forge/_v0_/'
 args      = PARSE_ARGS(path=directory)
 var       = parameters()
-
+if not os.path.exists(args.pickled + 'heat_list.pkl'):
+    joblib.dump(heat_list, args.pickled + 'heat_list.pkl')
 
 def list_files(args, folder, filename, to_print=False):
     '''
@@ -100,6 +101,18 @@ def color_hist(img, nbins=32): # bins_range=(0 , 256) # see t = 8min46s
 def extract_features(imgs, color_space='RGB', spatial_size=(32, 32), hist_bins=32, orient=9,
                      pix_per_cell=8, cell_per_block=2, hog_channel=0,
                      spatial_feat=True, hist_feat=True, hog_feat=True):
+    var = parameters()                                  # <- delete
+    cell_per_block = var['cell_per_block']
+    color_space    = var['color_space']
+    hist_bins      = var['hist_bins']
+    hog_channel    = var['hog_channel']
+    orient         = var['orient']
+    pix_per_cell   = var['pix_per_cell']
+    scale          = var['scale']
+    spatial_size   = var['spatial_size']
+    ystart         = var['y_start_stop'][0]
+    ystop          = var['y_start_stop'][1]
+
     # create a list to append feature vectors to
     features = []
     # iterate through the list of images
@@ -107,8 +120,10 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32), hist_bins=3
         file_features = []
         # read in each one by one
         image = mpimg.imread(file)
+        #img    = image.copy().astype(np.float32) / 255  # <- delete
+        #img_tosearch = img[ystart:ystop, :, :]          # <- delete
         # apply color conversation if other than 'RGB'
-        feature_image = convert_color(img_tosearch, conv=color_space)
+        feature_image = convert_color(image, conv=color_space)
 
         if spatial_feat == True:
             spatial_features = bin_spatial(feature_image, size=spatial_size)
@@ -191,7 +206,7 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32), hist_bins
     # create a list to append features
     img_features = []
     # apply color conversation if other than 'RGB'
-    feature_image = convert_color(img_tosearch, conv=color_space)
+    feature_image = convert_color(img, conv=color_space)
     # compute spatial features if flag is set
     if spatial_feat == True:
         spatial_features = bin_spatial(feature_image, size=spatial_size)
@@ -281,11 +296,11 @@ def visualize(figsize, cols, imgs, titles):
 
 
 def classifier(args, var, to_print=True):
-    if os.path.exists(args.pickled + 'svc.p'):
+    if os.path.exists(args.pickled + 'svc.pkl'):
         # de-serialize/load X_scaler, scaled_X, svc:
-        X_scaler = pickle.load(open(args.pickled + "X_scaler.p", "rb"))
-        scaled_X = pickle.load(open(args.pickled + "scaled_X.p", "rb"))
-        svc      = pickle.load(open(args.pickled + "svc.p", "rb"))
+        X_scaler = joblib.load(args.pickled + 'X_scaler.pkl')
+        scaled_X = joblib.load(args.pickled + 'scaled_X.pkl')
+        svc      = joblib.load(args.pickled + 'svc.pkl')
     else:
         # list_all_images
         cars, notcars = list_all_images(args)
@@ -343,9 +358,9 @@ def classifier(args, var, to_print=True):
         if to_print: print('[SHAPE] Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
 
         # serialize/store X_scaler, scaled_X, svc:
-        pickle.dump(X_scaler, open(args.pickled + "X_scaler.p", 'wb'))
-        pickle.dump(scaled_X, open(args.pickled + "scaled_X.p", 'wb'))
-        pickle.dump(svc, open(args.pickled + "svc.p", 'wb'))
+        joblib.dump(X_scaler, args.pickled + 'X_scaler.pkl')
+        joblib.dump(scaled_X, args.pickled + 'scaled_X.pkl')
+        joblib.dump(svc     , args.pickled + 'svc.pkl')
 
     return X_scaler, scaled_X, svc
 
@@ -512,13 +527,24 @@ def draw_labeled_bboxes(img, labels):
 #     return draw_img
 
 def process_image(image):
-    var      = parameters()
+    # parameter
+    directory = 'D:/USER/_PROJECT_/_PRJ05_/_1_WIP/_1_forge/_v0_/'
+    args      = PARSE_ARGS(path=directory)
+    var       = parameters()
+
+    # script
+    if not os.path.exists(args.pickled + 'heat_list.pkl'): # de-serialize/load heat_list
+        joblib.dump(heat_list, args.pickled + 'heat_list.pkl')
+
     #bboxes   = find_cars(args, var, image)
     bboxes   = multiscale_bboxes(args, var, image)
     heat     = add_heat(np.zeros_like(image[:,:,0]).astype(np.float),bboxes) # Add heat to each box in box list
 
     heat_list.append(heat)
-    heat_smooth = np.int32(np.average(heat_list, 0))
+    #joblib.dump(heat_list, args.pickled + 'heat_list.pkl') # serialize/store heat_list
+    joblib.dump(heat_list[-smooth_factor:], args.pickled + 'heat_list.pkl')  # serialize/store heat_list
+
+    heat_smooth = np.int32(np.average(heat_list[-smooth_factor:], 0))
 
     heat     = apply_threshold(heat_smooth,2)  # ,1) # Apply threshold to help remove false positives
     heatmap  = np.clip(heat, 0, 255) # Visualize the heatmap when displaying
@@ -535,10 +561,47 @@ def video(video_input, video_output):
     #% time white_clip.write_videofile(video_output, audio=False)
     video_clip.write_videofile(video_output, audio=False)
 
+
+def cut_video(args, piece=10, mp4=0):
+    video_input  = args.path  + {0: "test_video.mp4", 1: "project_video.mp4"}[mp4]
+    video_output = args.video + {0: "video_output_test.mp4", 1: "video_output_project.mp4"}[mp4]
+
+    clip     = VideoFileClip(video_input)
+    duration = int(clip.duration)
+    step     = int(duration/piece)
+    #print('duration: {}, step: {}'.format(duration,step))
+
+    for t in range(0,duration,step):
+        ffmpeg_extract_subclip(video_input, t, t+step, targetname=video_output[:-4]+'_'+str(t)+'.mp4')
+
+
+def merge_video(args):
+    videos = glob.glob(args.out + '*.mp4')
+    clips  = []
+
+    for clip in videos:
+        clips.append( VideoFileClip(clip) )
+
+    clips_final = concatenate_videoclips(clips)
+    clips_final.write_videofile(args.out + 'video_output.mp4') # , bitrate="5000k")
+
+
+
 def test(args, mp4=0):
     video_input  = args.path + {0: "test_video.mp4", 1: "project_video.mp4"}[mp4]
     video_output = args.out  + {0: "video_output_test.mp4", 1: "video_output_project.mp4"}[mp4]
     video(video_input, video_output)
+
+def test0(args, mp4=0, to_print=False):
+    videos = glob.glob(args.video + '*.mp4')
+    if to_print:
+        _ = [print('{}. {}'.format(count, clip.split('\\')[-1])) for count,clip in enumerate(videos)]
+    else:
+        video_input  = videos[mp4]
+        print('video_input: {}'.format(video_input.split('\\')[-1]))
+        video_output = args.out + 'video_output_T' + videos[mp4].split('project_video_')[-1] #+ '.mp4'
+        video(video_input, video_output)
+
 
 def test2(args, mp4=0):
     video_input  = args.video + {0: 'project_video_00-15.mp4',
@@ -553,21 +616,8 @@ def test2(args, mp4=0):
 
     video(video_input, video_output)
 
-
-def cut_video(args, piece=10, mp4=0):
-    video_input  = args.path + {0: "test_video.mp4", 1: "project_video.mp4"}[mp4]
-    video_output = args.video  + {0: "video_output_test.mp4", 1: "video_output_project.mp4"}[mp4]
-
-    clip     = VideoFileClip(video_input)
-    duration = int(clip.duration)
-    step     = int(duration/piece)
-    #print('duration: {}, step: {}'.format(duration,step))
-
-    for t in range(0,duration,step):
-        ffmpeg_extract_subclip(video_input, t, t+step, targetname=video_output[:-4]+'_'+str(t)+'.mp4')
-
 def test3(args):
-    videos = glob.glob(args.video + ('*.mp4'))
+    videos = glob.glob(args.video + '*.mp4')
     video_input, video_output = {}, {}
     count = 0
 
@@ -580,24 +630,32 @@ def test3(args):
         count += 1
 
 
-
-
 def main():
     # parameter
     directory = 'D:/USER/_PROJECT_/_PRJ05_/_1_WIP/_1_forge/_v0_/'
     args      = PARSE_ARGS(path=directory)
     var       = parameters()
 
+    # videos = glob.glob(args.video + '*.mp4')
+    # _ = [ print( '{}. {}'.format(count, clip.split('\\')[-1])) for count,clip in enumerate(videos)]
+
     # generate video output
-    test(args, mp4=0)
-    #test(args, mp4=1)
-    #test2(args, mp4=3)
+
+    # test(args, mp4=1)
+    # test0(args, mp4=0) # , to_print=True)
+    # test1(args, mp4=2)
+    # test2(args, mp4=3)
     # for i in range(3):
     #     test2(args, mp4=i)
+    # test3(args)
 
     #cut_video(args, piece=10, mp4=1)
+    merge_video(args)
 
-    #test3(args)
+
+    # video_input  = args.path + 'project_video.mp4'
+    # video_output = args.video + 'project_video_50.mp4'
+    # ffmpeg_extract_subclip(video_input, 29, 50, targetname=video_output)
 
 if __name__ == '__main__':
     main()
