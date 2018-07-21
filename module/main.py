@@ -199,12 +199,13 @@ def draw_boxes(img, bboxes, color=(0,0,255), thick=6):
     # return the image copy with boxes drawn
     return imcopy
 
-# CHECK KO # Helper function:
+# CHECK OK # Helper function:
 def single_img_features(img, color_space='RGB', spatial_size=(32, 32), hist_bins=32, orient=9,
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
                         spatial_feat=True, hist_feat=True, hog_feat=True, vis=False):
     # create a list to append features
     img_features = []
+    hog_image = np.zeros_like(img)
     # apply color conversation if other than 'RGB'
     feature_image = convert_color(img, conv=color_space)
     # compute spatial features if flag is set
@@ -220,7 +221,7 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32), hist_bins
         if hog_channel == 'ALL':
             hog_features = []
             for channel in range(feature_image.shape[2]):
-                hog_features.append(get_hog_features(feature_image[:,:,channel], orient,
+                hog_features.extend(get_hog_features(feature_image[:,:,channel], orient,
                                     pix_per_cell, cell_per_block, vis=False, feature_vec=True))
         else:
             if vis == True:
