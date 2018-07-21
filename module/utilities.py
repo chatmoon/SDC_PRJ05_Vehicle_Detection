@@ -1,3 +1,17 @@
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import numpy as np
+import cv2
+import csv
+import time
+from skimage.feature import hog # note: hog() takes in a single color channel or grayscaled image as input
+from sklearn.svm import LinearSVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+import os
+import glob
+import random
+
 # Helper function: command-line / parse parameters
 class PARSE_ARGS(object):
     # TODO: should it be replaced it by collections.namedtuple , ref: email PyTricks 30.03.18? immutable obj
@@ -10,6 +24,7 @@ class PARSE_ARGS(object):
         self.notcars = self.path + 'data/non-vehicles/'
         self.small   = self.path + 'data/smallset/'
         self.pickled = self.path + 'data/pickled_object/'
+        self.tab     = self.path + 'data/tabular/'
         self.video   = self.path + 'video/'
         self.column  = 5
 
@@ -27,6 +42,8 @@ class PARSE_ARGS(object):
         return self.small
     def pickled(self):
         return self.pickled
+    def tab(self):
+        return self.tab
     def video(self):
         return self.video
     def column(self):
@@ -63,6 +80,60 @@ def parameters():
                   'y_start_stop'  : [400, 656],
                   'xy_window'     : (128,128) }
     return dictionary
+
+# Helper functions: create directory tree
+def check_folder_sub(path):
+    '''Create a folder if not present'''
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def create_folder(path, list_folders_name): # , length):
+    if len(list_folders_name) == 1:
+        return check_folder_sub(path+list_folders_name[0]+'/')
+    else:
+        return create_folder(path+list_folders_name[0]+'/', list_folders_name[1:])
+
+
+def check_folder(args, path_file):
+    list_folders_name = path_file.split(args.path)[-1].split('/')[:-1]
+    create_folder(args.path, list_folders_name)
+    #check_file_csv(file_csv)
+
+def check_file_csv(args, file_csv):
+    if not os.path.isfile(file_csv):
+        # file_csv_name = file_csv.split('/')[-1]
+        # path_file     = file_csv.split(file_csv_name)[0]
+        # check_folder(args, path_file)
+        check_folder(args, args.tab)
+        with open(file_csv, 'w') as file:
+            writer = csv.writer(file)  # Create writer
+            header = ['cell_per_block', 'color_space', 'hist_bins',
+                      'hist_feat', 'hog_channel', 'orientation',
+                      'pix_per_cell', 'spatial_feat', 'spatial_size',
+                      'accuracy', 'feature vec. length', 'seconds to compute features',
+                      'seconds to train SVC', 'sum of seconds']  # Write header row from 1st item keys
+            writer.writerow(header)
+
+def log_read(args):
+    # read log.csv in args.tab
+    logs = []
+    file_csv = args.tab + 'log.csv'
+    with open(file_csv) as csvfile:
+        reader = csv.reader(csvfile)
+        for log in reader:
+            logs.append(log)
+
+
+def log_write(args, new_entry):
+    # read log.csv in args.tab
+    file_csv = args.tab + 'log.csv'
+    check_file_csv(args, file_csv)
+    with open(file_csv, 'a') as file:
+        writer = csv.writer(file)
+        writer.writerow(new_entry)
+
+
 
 # Helper function: plot images
 def images_plot(args, camera_dictionary):

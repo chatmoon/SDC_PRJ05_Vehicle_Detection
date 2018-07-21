@@ -11,16 +11,19 @@ from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split # sklearn v 0.18import
 # from sklearn.cross_validation import train_test_split
+# global flag
+# flag = False
+
 
 # Helper function: return HOG features and visualization
 def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
     if vis==True: # call with two outputs if vis==True
         # TODO: switch transform_sqrt = True # False
-        features, hog_image = hog(img,orientations=orient,
+        features, hog_image = hog(img, orientations=orient,
                                   pixels_per_cell = (pix_per_cell, pix_per_cell),
                                   cells_per_block = (cell_per_block, cell_per_block),
                                   transform_sqrt  = True,
-                                  visualize = vis, feature_vector = feature_vec ) # visualize instead of visualise
+                                  visualize = vis, feature_vector = feature_vec )
         return features, hog_image
     else:         # otherwise call with one output
         # TODO: switch transform_sqrt = True
@@ -273,29 +276,50 @@ def visualize(figsize, cols, imgs, titles):
 #     plt.show()
 
 
-def step02_test(args):
+def step02_test(args, var, index=(0,0), flag=True):
     # list_all_images
     cars, notcars = list_all_images(args)
 
     # choose random car/notcar indices
-    car_ind = np.random.randint(0, len(cars))
-    notcar_ind = np.random.randint(0, len(notcars))
+    if flag:
+        car_ind = np.random.randint(0, len(cars))
+        notcar_ind = np.random.randint(0, len(notcars))
+        print('car_ind: {}, notcar_ind: {}'.format(car_ind, notcar_ind))
+    else: (car_ind, notcar_ind) = index
+
 
     # read in car / notcar images
     car_image = mpimg.imread(cars[car_ind])
     notcar_image = mpimg.imread(notcars[notcar_ind])
 
-    # define feature parameters
-    color_space = 'RGB'  # can be RGB HSV LUV HLS YUV YCrCb
-    orient = 6
-    pix_per_cell = 8
-    cell_per_block = 2
-    hog_channel = 0  # can be 0 1 2 or 'ALL'
-    spatial_size = (16, 16)  # spatial binning dimensions
-    hist_bins = 16  # number of histogram bins
-    spatial_feat = True  # spatial features on or off
-    hist_feat = True  # histogram features on or off
-    hog_feat = True  # HOG features on or off
+    # # define feature parameters
+    # color_space = 'RGB'  # can be RGB HSV LUV HLS YUV YCrCb
+    # orient = 6
+    # pix_per_cell = 8
+    # cell_per_block = 2
+    # hog_channel = 0  # can be 0 1 2 or 'ALL'
+    # spatial_size = (16, 16)  # spatial binning dimensions
+    # hist_bins = 16  # number of histogram bins
+    # spatial_feat = True  # spatial features on or off
+    # hist_feat = True  # histogram features on or off
+    # hog_feat = True  # HOG features on or off
+
+    # set feature parameters
+    cell_per_block = var['cell_per_block']  # 4
+    color_space = var['color_space']        # 1 can be RGB HSV LUV HLS YUV YCrCb
+    hist_bins = var['hist_bins']            # 7 number of histogram bins, 16
+    hist_feat = var['hist_feat']            # 9 histogram features on or off
+    hog_channel = var['hog_channel']        # 5 can be 0 1 2 or 'ALL'
+    hog_feat = var['hog_feat']              # 10 HOG features on or off
+    orient = var['orient']                  # 2
+    pix_per_cell = var['pix_per_cell']      # 3
+    #scale = var['scale']
+    spatial_feat = var['spatial_feat']      # 8 spatial features on or off
+    spatial_size = var['spatial_size']      # 6 spatial binning dimensions, (16, 16)
+    #ystart = var['y_start_stop'][0]
+    #ystop = var['y_start_stop'][1]
+
+
 
     car_features, car_hog_image = single_img_features(car_image, color_space=color_space, spatial_size=spatial_size,
                                                       hist_bins=hist_bins, orient=orient, pix_per_cell=pix_per_cell,
@@ -374,3 +398,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
