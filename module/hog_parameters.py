@@ -37,46 +37,6 @@ def exp_hog_parameters(args, var, to_log=True):
     # list_all_images
     cars, notcars = list_all_images(args)
 
-    # choose random car/notcar indices
-    flag_random = False
-    if flag_random:
-        car_ind = np.random.randint(0, len(cars))
-        notcar_ind = np.random.randint(0, len(notcars))
-    else:
-        car_ind, notcar_ind = 2734, 7868
-
-    # read in car / notcar images
-    car_image = mpimg.imread(cars[car_ind])
-    notcar_image = mpimg.imread(notcars[notcar_ind])
-
-    num_img = 5
-    flag_random = False
-    if flag_random:
-        cars_image_to_plot = [[cars[index].split('\\')[-1][:-4], cars[index]] for index in
-                              [random.randint(0, len(cars)) for i in range(num_img)]]
-        notcars_image_to_plot = [[notcars[index].split('\\')[-1][:-4], notcars[index]] for index in
-                                 [random.randint(0, len(notcars)) for i in range(num_img)]]
-    else:
-        cars_image_to_plot = [[index, cars[index]] for index in
-                              [random.randint(0, len(cars)) for i in range(num_img)]]
-        notcars_image_to_plot = [[index, notcars[index]] for index in
-                                 [random.randint(0, len(notcars)) for i in range(num_img)]]
-
-    car_features, car_hog_image = single_img_features(car_image, color_space=color_space, spatial_size=spatial_size,
-                                                      hist_bins=hist_bins, orient=orient, pix_per_cell=pix_per_cell,
-                                                      cell_per_block=cell_per_block, hog_channel=hog_channel,
-                                                      spatial_feat=spatial_feat, hist_feat=hist_feat, hog_feat=hog_feat,
-                                                      vis=True)
-
-    notcar_features, notcar_hog_image = single_img_features(notcar_image, color_space=color_space,
-                                                            spatial_size=spatial_size,
-                                                            hist_bins=hist_bins, orient=orient,
-                                                            pix_per_cell=pix_per_cell,
-                                                            cell_per_block=cell_per_block, hog_channel=hog_channel,
-                                                            spatial_feat=spatial_feat, hist_feat=hist_feat,
-                                                            hog_feat=hog_feat,
-                                                            vis=True)
-
     t            = time.time()
     n_samples    = 1000
     random_idxs  = np.random.randint(0, len(cars), n_samples)
@@ -142,8 +102,7 @@ def main():
 
     # define feature parameters
     var['color_space'] = 'YCrCb'  # can be HLS, HSV, LUV, RGB, YCrCb, YUV
-
-    var['orient']      = 14      # 8
+    var['orient']      = 9      # 8
 
     exp_hog_parameters(args, var, to_log=True)
 
