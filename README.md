@@ -13,7 +13,7 @@ Clone the Github repository and change the directory path in the `main.py` file 
 ```python
 def main():
     ## parameter
-    directory = 'D:/tmp/CarND-Vehicle-Detection'
+    directory = 'D:/tmp/CarND-Vehicle-Detection/'
     args      = PARSE_ARGS(path=directory)
     var       = parameters()
 
