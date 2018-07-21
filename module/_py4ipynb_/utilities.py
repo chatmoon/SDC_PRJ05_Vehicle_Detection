@@ -104,5 +104,6 @@ def plot_images(args, image_to_plot, column=5, figsize=(15, 13)):
     for ax, image in zip(axes.flatten(), image_to_plot):
         frame = mpimg.imread(image[1])
         ax.imshow(frame)
+        ax.axis('off')
         ax.set_title(image[0], fontsize=15)
     plt.show()

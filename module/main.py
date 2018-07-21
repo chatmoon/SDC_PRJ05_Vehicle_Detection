@@ -1,6 +1,6 @@
-# RESULT: ...
+# RESULT: www.youtube.com/watch?v=vTU3D7OdSFY&feature=youtu.be
 
-from step0 import PARSE_ARGS, parameters
+from utilities import *
 import os,cv2, time, pickle, glob
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -199,7 +199,7 @@ def draw_boxes(img, bboxes, color=(0,0,255), thick=6):
     # return the image copy with boxes drawn
     return imcopy
 
-# CHECK KO # Helper function: extract features from a single image window (for a single image)
+# CHECK KO # Helper function:
 def single_img_features(img, color_space='RGB', spatial_size=(32, 32), hist_bins=32, orient=9,
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
                         spatial_feat=True, hist_feat=True, hog_feat=True, vis=False):
@@ -480,7 +480,7 @@ def multiscale_bboxes(args, var, image):
     return bboxes
 
 
-# L19.37
+# L19.37 # Helper function: add "heat" to a map for a list of bounding boxes
 def add_heat(heatmap, bbox_list):
     # Iterate through list of bboxes
     for box in bbox_list:
@@ -491,7 +491,7 @@ def add_heat(heatmap, bbox_list):
     # Return updated heatmap
     return heatmap
 
-# CHECK OK # Helper function: return thresholded map
+# CHECK OK # Helper function: threshold the map to reject areas affected
 def apply_threshold(heatmap, threshold):
     # zeros out pixels below the threshold
     heatmap[heatmap <= threshold] = 0
@@ -562,72 +562,13 @@ def video(video_input, video_output):
     video_clip.write_videofile(video_output, audio=False)
 
 
-def cut_video(args, piece=10, mp4=0):
-    video_input  = args.path  + {0: "test_video.mp4", 1: "project_video.mp4"}[mp4]
-    video_output = args.video + {0: "video_output_test.mp4", 1: "video_output_project.mp4"}[mp4]
-
-    clip     = VideoFileClip(video_input)
-    duration = int(clip.duration)
-    step     = int(duration/piece)
-    #print('duration: {}, step: {}'.format(duration,step))
-
-    for t in range(0,duration,step):
-        ffmpeg_extract_subclip(video_input, t, t+step, targetname=video_output[:-4]+'_'+str(t)+'.mp4')
-
-
-def merge_video(args):
-    videos = glob.glob(args.out + '*.mp4')
-    clips  = []
-
-    for clip in videos:
-        clips.append( VideoFileClip(clip) )
-
-    clips_final = concatenate_videoclips(clips)
-    clips_final.write_videofile(args.out + 'video_output.mp4') # , bitrate="5000k")
-
-
-
-def test(args, mp4=0):
+def tracker_cars(args, mp4=1):
     video_input  = args.path + {0: "test_video.mp4", 1: "project_video.mp4"}[mp4]
     video_output = args.out  + {0: "video_output_test.mp4", 1: "video_output_project.mp4"}[mp4]
+    print('video_input: {}'.format(video_input.split('\\')[-1]))
     video(video_input, video_output)
+    print('the result has been saved here: {}'.format(video_output))
 
-def test0(args, mp4=0, to_print=False):
-    videos = glob.glob(args.video + '*.mp4')
-    if to_print:
-        _ = [print('{}. {}'.format(count, clip.split('\\')[-1])) for count,clip in enumerate(videos)]
-    else:
-        video_input  = videos[mp4]
-        print('video_input: {}'.format(video_input.split('\\')[-1]))
-        video_output = args.out + 'video_output_T' + videos[mp4].split('project_video_')[-1] #+ '.mp4'
-        video(video_input, video_output)
-
-
-def test2(args, mp4=0):
-    video_input  = args.video + {0: 'project_video_00-15.mp4',
-                                 1: 'project_video_15-30.mp4',
-                                 2: 'project_video_30-45.mp4',
-                                 3: 'project_video_45-50.mp4'}[mp4]
-
-    video_output = args.out   + {0: 'video_output_00-15.mp4',
-                                 1: 'video_output_15-30.mp4',
-                                 2: 'video_output_30-45.mp4',
-                                 3: 'video_output_45-50.mp4'}[mp4]
-
-    video(video_input, video_output)
-
-def test3(args):
-    videos = glob.glob(args.video + '*.mp4')
-    video_input, video_output = {}, {}
-    count = 0
-
-    for clip in videos:
-        if not os.path.exists(args.out + 'video_output_' + str(count) + '.mp4'):
-            video_input[count]  = args.video + clip.split('\\')[-1]
-            video_output[count] = args.out   + 'video_output_' + str(count) + '.mp4'
-            video(video_input[count], video_output[count])
-            #gc.collect()
-        count += 1
 
 
 def main():
@@ -636,27 +577,11 @@ def main():
     args      = PARSE_ARGS(path=directory)
     var       = parameters()
 
-    # dectect vehicle: {0: "test_video.mp4", 1: "project_video.mp4"}[mp4]
-    test(args, mp4=1)
-
-    ## archives
-    # videos = glob.glob(args.video + '*.mp4')
-    # _ = [ print( '{}. {}'.format(count, clip.split('\\')[-1])) for count,clip in enumerate(videos)]
-
-    # test0(args, mp4=0) # , to_print=True)
-    # test1(args, mp4=2)
-    # test2(args, mp4=3)
-    # for i in range(3):
-    #     test2(args, mp4=i)
-    # test3(args)
-
-    #cut_video(args, piece=10, mp4=1)
-    #merge_video(args)
+    ## dectect vehicle:
+    #  {0: "test_video.mp4", 1: "project_video.mp4"}[mp4]
+    tracker_cars(args, mp4=1)
 
 
-    # video_input  = args.path + 'project_video.mp4'
-    # video_output = args.video + 'project_video_50.mp4'
-    # ffmpeg_extract_subclip(video_input, 29, 50, targetname=video_output)
 
 if __name__ == '__main__':
     main()
